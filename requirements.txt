@@ -5,3 +5,4 @@ tqdm
 wandb
 termcolor
 tabulate
+torchkernels @ git+https://github.com/parthe/torchkernels
