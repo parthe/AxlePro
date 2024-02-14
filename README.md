@@ -27,9 +27,8 @@ y = torch.randn(n, c)
 
 ahat2, err2 = lm_axlepro_solver(K, X, y, s, q, epochs=epochs)
 plt.plot(err2, 'g', label='LM-AxlePro')
-print(err2[-1])
 
 model2 = KernelModel(kernel=K, centers=X, preconditioner_level=q, nystrom_size=s)
 model2.fit(y, epochs=epochs)
-print(model2.score(X, y))
+print('Laplacian test complete!')
 ```
