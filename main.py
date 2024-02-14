@@ -14,7 +14,7 @@ epochs = 1000
 X = torch.randn(n, d)
 y = torch.randn(n, c)
 
-ahat1, err1 = axlepro_solver(K, X, y, q, epochs=epochs)
+ahat1, err1 = axlepro_solver(K, X, y, q, epochs=epochs, verbose=True)
 plt.plot(err1, 'b', label='AxlePro')
 print(err1[-1])
 
@@ -22,7 +22,7 @@ model1 = KernelModel(kernel=K, centers=X, preconditioner_level=q, verbose=True)
 model1.fit(y, epochs=epochs)
 print(model1.score(X, y))
 
-ahat2, err2 = lm_axlepro_solver(K, X, y, s, q, epochs=epochs)
+ahat2, err2 = lm_axlepro_solver(K, X, y, s, q, epochs=epochs, verbose=True)
 plt.plot(err2, 'g', label='LM-AxlePro')
 print(err2[-1])
 

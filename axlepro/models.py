@@ -41,6 +41,7 @@ class KernelModel:
             self.nystrom_size = nystrom_size
             self.nystrom_ids = torch.randperm(self.size)[:self.nystrom_size]
 
+        timer.tic()
         self.E, self.L, self.lqp1, self.beta = top_eigensystem(
             self.kernel, self.centers[self.nystrom_ids],
             self.preconditioner_level, method="scipy.linalg.eigh")
@@ -50,16 +51,18 @@ class KernelModel:
             eigvals_only=True, subset_by_index=[0, 0])[0]
         if self.verbose:
             lr1, lr2, damp = self.lrs(self.critical_batch_size)
-            print(f"critical batch size={self.critical_batch_size}, "
+            print(f"critical_batch_size={self.critical_batch_size}, "
                   f"lr1={lr1.item()}, "
                   f"lr2={lr2.item()}, "
                   f"damp={damp}")
+        setup_time = timer.tocvalue(restart=True)
         if self.lm_mode:
             self.name = "LM-AxlePro"
             self.setup_lm()
         else:
             self.name = "AxlePro"
             self.setup()
+        if self.verbose: print(f"{self.name} setup time: {setup_time:.2f}s")
 
     @property
     def size(self):
@@ -135,13 +138,15 @@ class KernelModel:
         if batch_size is None:
             batch_size = self.critical_batch_size
         self.train = True
-
+        timer.tic()
+        time_per_epoch = torch.zeros(epochs)
         for t in range(epochs):
             batches = torch.randperm(self.size).split(batch_size)
             for i, batch_ids in enumerate(batches):
                 self.fit_batch(batch_ids, targets[batch_ids])
-
-
+            time_per_epoch[t] = timer.tocvalue(restart=True)
+        if self.verbose:
+            print(f"{self.name} fit time: {time_per_epoch.sum():.2f}s")
         self.train = False
 
     def score(self, inputs, targets, score_fn=mse):

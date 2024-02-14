@@ -21,7 +21,7 @@ def hyperparameter_selection(m, n, beta, lqp1, lam_min):
     return eta_1/m, eta_2/m, gamma
 
 
-def axlepro_solver(K, X, y, q, m=None, epochs=1):
+def axlepro_solver(K, X, y, q, m=None, epochs=1, verbose=False):
     """
         Storage: (n x q) + s2
         FLOPS at setup: (s x q2) +
@@ -42,8 +42,10 @@ def axlepro_solver(K, X, y, q, m=None, epochs=1):
     lr1, lr2, damp = lrs(m)
     print(f"bs_crit={bs_crit}, m={m}, lr1={lr1.item()}, "
           f"lr2={lr2.item()}, damp={damp}")
-    timer.toc("AxlePro Setup :", restart=True)
+    setup_time = timer.tocvalue(restart=True)
+    if verbose: print(f"AxlePro Setup time: {setup_time:.2f}s")
     err = torch.ones(epochs) * torch.nan
+    time_per_epoch = torch.zeros(epochs)
     for t in range(epochs):
         batches = torch.randperm(n).split(m)
         for i, bids in enumerate(batches):
@@ -58,12 +60,14 @@ def axlepro_solver(K, X, y, q, m=None, epochs=1):
             b = (1 + damp) * a - damp * a_
             b[bids] += lr2 * v
             b -= lr2 * w
+        time_per_epoch[t] = timer.tocvalue(restart=True)
         err[t] = mse(KmV(K, X, X, a), y)
-    timer.toc("AxlePro Iterations :")
+        timer.tocvalue(restart=True)
+    if verbose: print(f"AxlePro iteration time : {time_per_epoch.sum():.2f}s")
     return a, err
 
 
-def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1):
+def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1, verbose=False):
     """
         Storage: (n x q) + s2
         FLOPS at setup: (s x q2) +
@@ -87,6 +91,7 @@ def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1):
           f"lr2={lr2.item()}, damp={damp}")
     timer.toc("LM-AxlePro Setup :", restart=True)
     err = torch.ones(epochs) * torch.nan
+    time_per_epoch = torch.zeros(epochs)
     for t in range(epochs):
         batches = torch.randperm(n).split(m)
         for i, bids in enumerate(batches):
@@ -101,6 +106,8 @@ def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1):
             b = (1 + damp) * a - damp * a_
             b[bids] += lr2 * v
             b[nids] -= lr2 * w
+        time_per_epoch[t] = timer.tocvalue(restart=True)
         err[t] = mse(KmV(K, X, X, a), y)
-    timer.toc("LM-AxlePro Iterations :")
+        timer.tocvalue(restart=True)
+    if verbose: print(f"AxlePro iteration time : {time_per_epoch.sum():.2f}s")
     return a, err
