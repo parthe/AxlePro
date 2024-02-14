@@ -1,11 +1,13 @@
-from torchkernels.linalg.eigh import top_eigensystem, nystrom_extension
+from functools import cache, partial
+from math import sqrt
+
+import scipy
+import torch
+from torchkernels.linalg.eigh import top_eigensystem
 from torchkernels.linalg.fmm import KmV
 from torchmetrics.functional import mean_squared_error as mse
+
 from axlepro.utils import timer
-from math import sqrt
-import torch
-import scipy
-from functools import cache, partial
 
 
 def hyperparameter_selection(m, n, beta, lqp1, lam_min):
@@ -21,21 +23,31 @@ def hyperparameter_selection(m, n, beta, lqp1, lam_min):
     return eta_1/m, eta_2/m, gamma
 
 
-def axlepro_solver(K, X, y, q, m=None, epochs=1, verbose=False):
+def axlepro_solver(kernel_fn, X, y, q, m=None, epochs=1, verbose=False):
     """
-        Storage: (n x q) + s2
-        FLOPS at setup: (s x q2) +
-        FLOPS per batch: (n x m) + {(m x q) + (n x q)}
+    Solves the kernel regression problem
+        K(X, X) @ weights = y
+    using the AxlePro algorithm.
+    The returned weights can be used to predict function value at any x
+        x -> K(x, X) @ weights
+    :param kernel_fn: positive definite kernel function
+    :param X: training inputs
+    :param y: training targets
+    :param q: level of preconditioning
+    :param m: batch-size (defaults to a critical value minimizing training time)
+    :param epochs: number of epochs to train
+    :param verbose: whether function should print logging information. helpful when debugging
+    :return: a tuple of (weights, error) where the error is computed per epoch
     """
     timer.tic()
     n = X.shape[0]
-    E, L, lqp1, beta = top_eigensystem(K, X, q, method="scipy.linalg.eigh")
+    E, L, lqp1, beta = top_eigensystem(kernel_fn, X, q, method="scipy.linalg.eigh")
     E.mul_((1 - lqp1 / L).sqrt())
     a = torch.zeros_like(y, dtype=E.dtype)
     b = torch.zeros_like(y, dtype=E.dtype)
     bs_crit = int(beta * n / lqp1) + 1
     m = bs_crit if m is None else m
-    mu = scipy.linalg.eigh(K(X, X),
+    mu = scipy.linalg.eigh(kernel_fn(X, X),
                            eigvals_only=True, subset_by_index=[0, 0])[0]
     lrs = cache(partial(hyperparameter_selection,
                         n=n, beta=beta, lqp1=lqp1 / n, lam_min=mu / n))
@@ -51,7 +63,7 @@ def axlepro_solver(K, X, y, q, m=None, epochs=1, verbose=False):
         batches = torch.randperm(n).split(m)
         for i, bids in enumerate(batches):
             lr1, lr2, damp = lrs(len(bids))
-            Km = K(X[bids], X)
+            Km = kernel_fn(X[bids], X)
             v = Km @ b - y[bids].type(a.type())
             w = E @ (E[bids].T @ v)
             a_ = a.clone()
@@ -62,7 +74,7 @@ def axlepro_solver(K, X, y, q, m=None, epochs=1, verbose=False):
             b[bids] += lr2 * v
             b -= lr2 * w
         time_per_epoch[t] = timer.tocvalue(restart=True)
-        err[t] = mse(KmV(K, X, X, a), y)
+        err[t] = mse(KmV(kernel_fn, X, X, a), y)
         timer.tocvalue(restart=True)
     if verbose: print(f"AxlePro iteration time : {time_per_epoch.sum():.2f}s")
     return a, err
@@ -70,9 +82,22 @@ def axlepro_solver(K, X, y, q, m=None, epochs=1, verbose=False):
 
 def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1, verbose=False):
     """
-        Storage: (n x q) + s2
-        FLOPS at setup: (s x q2) +
-        FLOPS per batch: (n x m) + {(m x q) + (n x q)}
+    Solves the kernel regression problem
+        K(X, X) @ weights = y
+    using the LM-AxlePro algorithm, a limited-memory version of AxlePro.
+    The returned weights can be used to predict function value at any x
+        x -> K(x, X) @ weights.
+    Note: LM-AxlePro uses a Nystrom extension to approximate the preconditioner
+    which significantly reduces the setup time, storage requirement, and in some cases
+    the per iteration overhead of preconditioning
+    :param kernel_fn: positive definite kernel function
+    :param X: training inputs
+    :param y: training targets
+    :param q: level of preconditioning
+    :param m: batch-size (defaults to a critical value minimizing training time)
+    :param epochs: number of epochs to train
+    :param verbose: whether function should print logging information. helpful when debugging
+    :return: a tuple of (weights, error) where the error is computed per epoch
     """
     timer.tic()
     n = X.shape[0]

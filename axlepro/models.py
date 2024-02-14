@@ -7,7 +7,10 @@ from torchmetrics.functional import mean_squared_error as mse
 from torchkernels.linalg.fmm import KmV
 
 
-class KernelModel:
+class AxleProKernelModel:
+    """
+    Kernel Model that can be fit using the AxlePro method
+    """
 
     def __init__(
             self,
@@ -18,6 +21,17 @@ class KernelModel:
             weights: torch.Tensor = None,
             verbose: bool = False,
     ):
+        """
+        Initialize the model with relevant parameters
+        :param kernel: positive definite kernel function
+        :param centers: torch.Tensor of shape (n_centers, n_features)
+        :param preconditioner_level: int. Level of preconditioner for AxlePro
+        :param nystrom_size: int. Size of the nystrom subset of the centers to be used to
+                approximate the preconditioner
+        :param weights: torch.Tensor of shape (n_centers, n_targets) where n_targets is
+                the number of target variables
+        :param verbose: flag for printing
+        """
         self.kernel = kernel
         self.nystrom_size: int = nystrom_size
         self.preconditioner_level = preconditioner_level
@@ -66,10 +80,16 @@ class KernelModel:
 
     @property
     def size(self):
+        """
+        Returns the size of the model
+        """
         return self.centers.shape[0]
 
     @property
     def dtype(self):
+        """
+        Returns the dtype of the model centers
+        """
         return self.centers.dtype
 
     def __call__(self, X):
@@ -114,6 +134,13 @@ class KernelModel:
         self.E.mul_(((1 - self.lqp1 / self.L) / self.L).sqrt())
 
     def fit_batch(self, batch_ids, y_batch):
+        """
+        Fit a single batch of data and update the model weights
+        :param batch_ids: torch.LongTensor of size (batch_size,)
+        :param y_batch: torch.Tensor of targets of size (batch_size, num_targets)
+                where num_targets is the number of outputs
+        :return:
+        """
         v = self.forward_(batch_ids, y_batch.type(self.dtype))
         w = self.backward_(batch_ids, v)
         lr1, lr2, damp = self.lrs(len(batch_ids))

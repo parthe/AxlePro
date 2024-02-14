@@ -13,7 +13,7 @@ import torch
 from torchkernels.kernels.radial import LaplacianKernel
 import matplotlib.pyplot as plt
 from axlepro.solvers import axlepro_solver, lm_axlepro_solver
-from axlepro.models import KernelModel
+from axlepro.models import AxleProKernelModel
 
 torch.set_default_dtype(torch.float64)
 torch.manual_seed(0)
@@ -31,7 +31,7 @@ ahat2, err2 = lm_axlepro_solver(K, X, y, s, q, epochs=epochs)
 model1 = KernelModel(kernel=K, centers=X, preconditioner_level=q)
 model1.fit(y, epochs=epochs)
 
-model2 = KernelModel(kernel=K, centers=X, preconditioner_level=q, nystrom_size=s)
+model2 = AxleProKernelModel(kernel=K, centers=X, preconditioner_level=q, nystrom_size=s)
 model2.fit(y, epochs=epochs)
 print('Laplacian test complete!')
 ```
