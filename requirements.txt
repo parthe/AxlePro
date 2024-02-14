@@ -5,4 +5,5 @@ tqdm
 wandb
 termcolor
 tabulate
+pytictoc
 torchkernels @ git+https://github.com/parthe/torchkernels
