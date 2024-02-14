@@ -2,5 +2,3 @@ scipy
 pytictoc
 torchmetrics
 torchkernels @ git+https://github.com/parthe/torchkernels
-matplotlib
-setuptools
