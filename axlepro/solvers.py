@@ -44,7 +44,7 @@ def axlepro_solver(K, X, y, q, m=None, epochs=1, verbose=False):
     if verbose: 
         print(f"bs_crit={bs_crit}, m={m}, lr1={lr1.item()}, "
           f"lr2={lr2.item()}, damp={damp}")
-        print(f"AxlePro Setup time: {setup_time:.2f}s")
+        print(f"AxlePro setup time: {setup_time:.2f}s")
     err = torch.ones(epochs) * torch.nan
     time_per_epoch = torch.zeros(epochs)
     for t in range(epochs):
@@ -92,7 +92,7 @@ def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1, verbose=False):
     if verbose:
         print(f"bs_crit={bs_crit}, m={m}, lr1={lr1.item()}, "
           f"lr2={lr2.item()}, damp={damp}")
-        print(f"LM-AxlePro Setup : {setup_time:.2f}s"
+        print(f"LM-AxlePro setup time : {setup_time:.2f}s")
         
     err = torch.ones(epochs) * torch.nan
     time_per_epoch = torch.zeros(epochs)
@@ -113,5 +113,5 @@ def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1, verbose=False):
         time_per_epoch[t] = timer.tocvalue(restart=True)
         err[t] = mse(KmV(K, X, X, a), y)
         timer.tocvalue(restart=True)
-    if verbose: print(f"AxlePro iteration time : {time_per_epoch.sum():.2f}s")
+    if verbose: print(f"LM-AxlePro iteration time : {time_per_epoch.sum():.2f}s")
     return a, err
