@@ -1,11 +1,8 @@
 import torch
-import math
-
 from torchkernels.kernels.radial import LaplacianKernel
 import matplotlib.pyplot as plt
-from torchkernels.linalg.fmm import KmV
-from axlepro import lm_axlepro
-from torchmetrics.functional import mean_squared_error as mse
+from axlepro.solvers import axlepro_solver, lm_axlepro_solver
+from axlepro.models import KernelModel
 
 torch.set_default_dtype(torch.float64)
 torch.manual_seed(0)
@@ -17,9 +14,21 @@ epochs = 1000
 X = torch.randn(n, d)
 y = torch.randn(n, c)
 
-ahat, err = lm_axlepro(K, X, y, s, q, epochs=epochs)
-plt.plot(err, 'g', label='axlepro')
-print(err[-1])
+ahat1, err1 = axlepro_solver(K, X, y, q, epochs=epochs)
+plt.plot(err1, 'b', label='AxlePro')
+print(err1[-1])
+
+model1 = KernelModel(kernel=K, centers=X, preconditioner_level=q, verbose=True)
+model1.fit(y, epochs=epochs)
+print(model1.score(X, y))
+
+ahat2, err2 = lm_axlepro_solver(K, X, y, s, q, epochs=epochs)
+plt.plot(err2, 'g', label='LM-AxlePro')
+print(err2[-1])
+
+model2 = KernelModel(kernel=K, centers=X, preconditioner_level=q, nystrom_size=s, verbose=True)
+model2.fit(y, epochs=epochs)
+print(model2.score(X, y))
 
 plt.yscale('log')
 plt.title(f'Nyström subset size = {s}')
