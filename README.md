@@ -25,11 +25,11 @@ epochs = 1
 X = torch.randn(n, d)
 y = torch.randn(n, c)
 
-ahat2, err2 = lm_axlepro_solver(K, X, y, s, q, epochs=epochs, verbose=True)
+ahat2, err2 = lm_axlepro_solver(K, X, y, s, q, epochs=epochs)
 plt.plot(err2, 'g', label='LM-AxlePro')
 print(err2[-1])
 
-model2 = KernelModel(kernel=K, centers=X, preconditioner_level=q, nystrom_size=s, verbose=True)
+model2 = KernelModel(kernel=K, centers=X, preconditioner_level=q, nystrom_size=s)
 model2.fit(y, epochs=epochs)
 print(model2.score(X, y))
 ```
