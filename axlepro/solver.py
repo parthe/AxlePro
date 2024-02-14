@@ -7,7 +7,6 @@ import torch
 import scipy
 from functools import cache, partial
 
-__version__ = 1.0
 
 
 def hyperparameter_selection(m, n, beta, lqp1, lam_min):
