@@ -40,10 +40,11 @@ def axlepro_solver(K, X, y, q, m=None, epochs=1, verbose=False):
     lrs = cache(partial(hyperparameter_selection,
                         n=n, beta=beta, lqp1=lqp1 / n, lam_min=mu / n))
     lr1, lr2, damp = lrs(m)
-    print(f"bs_crit={bs_crit}, m={m}, lr1={lr1.item()}, "
-          f"lr2={lr2.item()}, damp={damp}")
     setup_time = timer.tocvalue(restart=True)
-    if verbose: print(f"AxlePro Setup time: {setup_time:.2f}s")
+    if verbose: 
+        print(f"bs_crit={bs_crit}, m={m}, lr1={lr1.item()}, "
+          f"lr2={lr2.item()}, damp={damp}")
+        print(f"AxlePro Setup time: {setup_time:.2f}s")
     err = torch.ones(epochs) * torch.nan
     time_per_epoch = torch.zeros(epochs)
     for t in range(epochs):
@@ -87,9 +88,12 @@ def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1, verbose=False):
     lrs = cache(partial(hyperparameter_selection,
                         n=n, beta=beta, lqp1=lqp1 / s, lam_min=mu / s))
     lr1, lr2, damp = lrs(m)
-    print(f"bs_crit={bs_crit}, m={m}, lr1={lr1.item()}, "
+    setup_time = timer.tocvalue(restart=True)
+    if verbose:
+        print(f"bs_crit={bs_crit}, m={m}, lr1={lr1.item()}, "
           f"lr2={lr2.item()}, damp={damp}")
-    timer.toc("LM-AxlePro Setup :", restart=True)
+        print(f"LM-AxlePro Setup : {setup_time:.2f}s"
+        
     err = torch.ones(epochs) * torch.nan
     time_per_epoch = torch.zeros(epochs)
     for t in range(epochs):
