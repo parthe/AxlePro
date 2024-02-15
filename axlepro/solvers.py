@@ -47,7 +47,7 @@ def axlepro_solver(kernel_fn, X, y, q, m=None, epochs=1, verbose=False):
     b = torch.zeros_like(y, dtype=E.dtype)
     bs_crit = int(beta * n / lqp1) + 1
     m = bs_crit if m is None else m
-    mu = scipy.linalg.eigh(kernel_fn(X, X),
+    mu = scipy.linalg.eigh(kernel_fn(X, X).cpu(),
                            eigvals_only=True, subset_by_index=[0, 0])[0]
     lrs = cache(partial(hyperparameter_selection,
                         n=n, beta=beta, lqp1=lqp1 / n, lam_min=mu / n))
@@ -108,7 +108,7 @@ def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1, verbose=False):
     b = torch.zeros_like(y, dtype=E.dtype)
     bs_crit = int(beta * s / lqp1) + 1
     m = bs_crit if m is None else m
-    mu = scipy.linalg.eigh(K(X[nids], X[nids]),
+    mu = scipy.linalg.eigh(K(X[nids], X[nids]).cpu(),
                            eigvals_only=True, subset_by_index=[0, 0])[0]
     lrs = cache(partial(hyperparameter_selection,
                         n=n, beta=beta, lqp1=lqp1 / s, lam_min=mu / s))
