@@ -1,5 +1,5 @@
 # AxlePro
-Fast solver for training kernel machines
+Faster solver for training kernel machines. It accelerates [EigenPro](https://github.com/EigenPro/EigenPro-pytorch) via momentum.
 
 ## Installation
 ```
