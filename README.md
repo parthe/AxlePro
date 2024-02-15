@@ -22,8 +22,10 @@ K = LaplacianKernel(bandwidth=1.)
 n, d, c, s, q = 100, 3, 2, 50, 4
 epochs = 1
 
-X = torch.randn(n, d)
-y = torch.randn(n, c)
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+X = torch.randn(n, d, device=DEVICE)
+y = torch.randn(n, c, device=DEVICE)
 
 ahat1, err1 = axlepro_solver(K, X, y, s, q, epochs=epochs)
 ahat2, err2 = lm_axlepro_solver(K, X, y, s, q, epochs=epochs)
