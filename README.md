@@ -30,7 +30,7 @@ y = torch.randn(n, c, device=DEVICE)
 ahat1, err1 = axlepro_solver(K, X, y, s, q, epochs=epochs)
 ahat2, err2 = lm_axlepro_solver(K, X, y, s, q, epochs=epochs)
 
-model1 = KernelModel(kernel=K, centers=X, preconditioner_level=q)
+model1 = AxleProKernelModel(kernel=K, centers=X, preconditioner_level=q)
 model1.fit(y, epochs=epochs)
 
 model2 = AxleProKernelModel(kernel=K, centers=X, preconditioner_level=q, nystrom_size=s)
