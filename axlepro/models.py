@@ -1,10 +1,9 @@
 import torch
 import scipy
-from axlepro.utils import top_eigensystem, timer
+from axlepro.utils import top_eigensystem, timer, smallest_eigenvalue, KmV
 from functools import cache
 from math import sqrt
 from torchmetrics.functional import mean_squared_error as mse
-from torchkernels.linalg.fmm import KmV
 
 
 class AxleProKernelModel:
@@ -60,9 +59,11 @@ class AxleProKernelModel:
             self.kernel, self.centers[self.nystrom_ids],
             self.preconditioner_level, method="scipy.linalg.eigh")
         self.critical_batch_size = int(self.beta * self.nystrom_size / self.lqp1) + 1
-        self.lam_min = scipy.linalg.eigh(
-            self.kernel(self.centers[self.nystrom_ids], self.centers[self.nystrom_ids]).cpu(),
-            eigvals_only=True, subset_by_index=[0, 0])[0]
+
+        # lam_min is the minimum eigenvalue of the entire kernel matrix
+        # To-do fast way to approximate mu
+        self.lam_min = smallest_eigenvalue(
+            self.kernel, self.centers)
         if self.verbose:
             lr1, lr2, damp = self.lrs(self.critical_batch_size)
             print(f"critical_batch_size={self.critical_batch_size}, "
@@ -117,8 +118,8 @@ class AxleProKernelModel:
 
     @cache
     def lrs(self, m):
-        mu = self.lam_min / self.nystrom_size / self.size
-        ktil_m = self.size / m + (m - 1) / m
+        mu = self.lam_min / self.size
+        ktil_m = 1 + (self.size - 1) / m
         Lm = (self.beta + (m - 1) * (self.lqp1 / self.nystrom_size)) / m
         k_m = Lm / mu
         eta_1 = 1 / Lm

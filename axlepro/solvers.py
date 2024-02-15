@@ -3,8 +3,7 @@ from math import sqrt
 
 import scipy
 import torch
-from torchkernels.linalg.eigh import top_eigensystem
-from torchkernels.linalg.fmm import KmV
+from axlepro.utils import top_eigensystem, smallest_eigenvalue, KmV
 from torchmetrics.functional import mean_squared_error as mse
 
 from axlepro.utils import timer
@@ -12,10 +11,9 @@ from axlepro.utils import timer
 
 def hyperparameter_selection(m, n, beta, lqp1, lam_min):
     # assumes lqp1 and lam_min are normalized
-    mu = lam_min / n
-    ktil_m = n / m + (m - 1) / m
     Lm = (beta + (m - 1) * lqp1) / m
-    k_m = Lm / mu
+    k_m = Lm / lam_min
+    ktil_m = 1 + (n - 1) / m
     eta_1 = 1 / Lm
     t_ = sqrt(k_m * ktil_m)
     eta_2 = ((eta_1 * t_) / (t_ + 1)) * (1 - 1 / ktil_m)
@@ -41,14 +39,13 @@ def axlepro_solver(kernel_fn, X, y, q, m=None, epochs=1, verbose=False):
     """
     timer.tic()
     n = X.shape[0]
-    E, L, lqp1, beta = top_eigensystem(kernel_fn, X, q, method="scipy.linalg.eigh")
-    E.mul_((1 - lqp1 / L).sqrt())
-    a = torch.zeros_like(y, dtype=E.dtype)
-    b = torch.zeros_like(y, dtype=E.dtype)
+    F, L, lqp1, beta = top_eigensystem(kernel_fn, X, q, method="scipy.linalg.eigh")
+    F.mul_((1 - lqp1 / L).sqrt())
+    a = torch.zeros_like(y, dtype=F.dtype)
+    b = torch.zeros_like(y, dtype=F.dtype)
     bs_crit = int(beta * n / lqp1) + 1
     m = bs_crit if m is None else m
-    mu = scipy.linalg.eigh(kernel_fn(X, X).cpu(),
-                           eigvals_only=True, subset_by_index=[0, 0])[0]
+    mu = smallest_eigenvalue(kernel_fn, X)
     lrs = cache(partial(hyperparameter_selection,
                         n=n, beta=beta, lqp1=lqp1 / n, lam_min=mu / n))
     lr1, lr2, damp = lrs(m)
@@ -65,7 +62,7 @@ def axlepro_solver(kernel_fn, X, y, q, m=None, epochs=1, verbose=False):
             lr1, lr2, damp = lrs(len(bids))
             Km = kernel_fn(X[bids], X)
             v = Km @ b - y[bids].type(a.type())
-            w = E @ (E[bids].T @ v)
+            w = F @ (F[bids].T @ v)
             a_ = a.clone()
             a = b
             a[bids] -= lr1 * v
@@ -102,16 +99,16 @@ def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1, verbose=False):
     timer.tic()
     n = X.shape[0]
     nids = torch.randperm(n)[:s]
-    E, L, lqp1, beta = top_eigensystem(K, X[nids], q, method="scipy.linalg.eigh")
-    E.mul_(((1 - lqp1 / L) / L).sqrt())
-    a = torch.zeros_like(y, dtype=E.dtype)
-    b = torch.zeros_like(y, dtype=E.dtype)
+    G, D, lqp1, beta = top_eigensystem(K, X[nids], q, method="scipy.linalg.eigh")
+    G.mul_(((1 - lqp1 / D) / D).sqrt())
+    a = torch.zeros_like(y, dtype=G.dtype)
+    b = torch.zeros_like(y, dtype=G.dtype)
     bs_crit = int(beta * s / lqp1) + 1
     m = bs_crit if m is None else m
-    mu = scipy.linalg.eigh(K(X[nids], X[nids]).cpu(),
+    mu = scipy.linalg.eigh(K(X, X).cpu(),
                            eigvals_only=True, subset_by_index=[0, 0])[0]
     lrs = cache(partial(hyperparameter_selection,
-                        n=n, beta=beta, lqp1=lqp1 / s, lam_min=mu / s))
+                        n=n, beta=beta, lqp1=lqp1 / s, lam_min=mu / n ))
     lr1, lr2, damp = lrs(m)
     setup_time = timer.tocvalue(restart=True)
     if verbose:
@@ -127,7 +124,7 @@ def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1, verbose=False):
             lr1, lr2, damp = lrs(len(bids))
             Km = K(X[bids], X)
             v = Km @ b - y[bids].type(a.type())
-            w = E @ (E.T @ (Km.T[nids] @ v))
+            w = G @ (G.T @ (Km.T[nids] @ v))
             a_ = a.clone()
             a = b
             a[bids] -= lr1 * v

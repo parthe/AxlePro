@@ -9,7 +9,7 @@ torch.manual_seed(0)
 
 K = LaplacianKernel(bandwidth=1.)
 n, d, c, s, q = 1000, 3, 2, 100, 10
-epochs = 1000
+epochs = 200
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
