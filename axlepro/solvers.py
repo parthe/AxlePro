@@ -24,10 +24,10 @@ def hyperparameter_selection(m, n, beta, lqp1, lam_min):
 def axlepro_solver(kernel_fn, X, y, q, m=None, epochs=1, verbose=False):
     """
     Solves the kernel regression problem
-        K(X, X) @ weights = y
+        kernel_fn(X, X) @ weights = y
     using the AxlePro algorithm.
     The returned weights can be used to predict function value at any x
-        x -> K(x, X) @ weights
+        x -> kernel_fn(x, X) @ weights
     :param kernel_fn: positive definite kernel function
     :param X: training inputs
     :param y: training targets
@@ -80,10 +80,10 @@ def axlepro_solver(kernel_fn, X, y, q, m=None, epochs=1, verbose=False):
 def lm_axlepro_solver(K, X, y, s, q, m=None, epochs=1, verbose=False):
     """
     Solves the kernel regression problem
-        K(X, X) @ weights = y
+        kernel_fn(X, X) @ weights = y
     using the LM-AxlePro algorithm, a limited-memory version of AxlePro.
     The returned weights can be used to predict function value at any x
-        x -> K(x, X) @ weights.
+        x -> kernel_fn(x, X) @ weights.
     Note: LM-AxlePro uses a Nystrom extension to approximate the preconditioner
     which significantly reduces the setup time, storage requirement, and in some cases
     the per iteration overhead of preconditioning

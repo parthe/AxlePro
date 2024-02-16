@@ -1,9 +1,10 @@
-import torch
-import scipy
-from axlepro.utils import top_eigensystem, timer, smallest_eigenvalue, KmV
 from functools import cache
 from math import sqrt
+
+import torch
 from torchmetrics.functional import mean_squared_error as mse
+
+from axlepro.utils import top_eigensystem, timer, smallest_eigenvalue, KmV
 
 
 class AxleProKernelModel:
@@ -15,7 +16,7 @@ class AxleProKernelModel:
             self,
             kernel,
             centers: torch.Tensor = None,
-            preconditioner_level = 1,
+            preconditioner_level=1,
             nystrom_size: int = None,
             weights: torch.Tensor = None,
             verbose: bool = False,
@@ -73,11 +74,12 @@ class AxleProKernelModel:
         setup_time = timer.tocvalue(restart=True)
         if self.lm_mode:
             self.name = "LM-AxlePro"
-            self.setup_lm()
+            self.scale_eigenvectors_lm()
         else:
             self.name = "AxlePro"
-            self.setup()
-        if self.verbose: print(f"{self.name} setup time: {setup_time:.2f}s")
+            self.scale_eigenvectors()
+        if self.verbose:
+            print(f"{self.name} setup time: {setup_time:.2f}s")
 
     @property
     def size(self):
@@ -128,10 +130,10 @@ class AxleProKernelModel:
         gamma = (t_ - 1) / (t_ + 1)
         return eta_1 / m, eta_2 / m, gamma
 
-    def setup(self, *args):
+    def scale_eigenvectors(self):
         self.E.mul_((1 - self.lqp1 / self.L).sqrt())
 
-    def setup_lm(self, *args):
+    def scale_eigenvectors_lm(self):
         self.E.mul_(((1 - self.lqp1 / self.L) / self.L).sqrt())
 
     def fit_batch(self, batch_ids, y_batch):
