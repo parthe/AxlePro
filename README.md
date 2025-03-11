@@ -5,6 +5,7 @@ Faster solver for training kernel machines. It accelerates [EigenPro](https://gi
 ```
 pip install git+ssh://git@github.com/parthe/AxlePro.git
 ```
+requires installing `torchkernels` from [here](http://github.com/parthe/torchkernels)
 
 # Test installation
 
